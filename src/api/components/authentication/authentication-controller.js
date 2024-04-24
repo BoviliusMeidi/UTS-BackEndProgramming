@@ -12,6 +12,15 @@ async function login(request, response, next) {
   const { email, password } = request.body;
 
   try {
+    // Check Limit login attempt
+    const limitLoginSuccess = await authenticationServices.checkLoginAttempt();
+
+    if (limitLoginSuccess) {
+      throw errorResponder(
+        errorTypes.FORBIDDEN,
+        'Too many failed login attempts.'
+      );
+    }
     // Check login credentials
     const loginSuccess = await authenticationServices.checkLoginCredentials(
       email,

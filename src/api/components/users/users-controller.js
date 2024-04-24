@@ -9,62 +9,14 @@ const { errorResponder, errorTypes } = require('../../../core/errors');
  * @returns {object} Response object or pass an error to the next route
  */
 async function getUsers(request, response, next) {
-  const page_number = parseInt(request.query.page_number);
-  const page_size = parseInt(request.query.page_size);
+  const page_number = parseInt(request.query.page_number) || 1; // parseInt => untuk dirubah menjadi integer
+  const page_size = parseInt(request.query.page_size) || Infinity; // parseInt => untuk dirubah menjadi integer
   const search = request.query.search;
   const sort = request.query.sort;
 
   try {
-    const users = await usersService.getUsers();
-    let results = users;
-    if (search) {
-      const [fieldName, searchKey] = search.split(':'); // untuk memecah search menjadi field name dan search key tanpa ada ":"
-      if (!['email', 'name'].includes(fieldName)) {
-        throw new Error(
-          `Salah menginput parameter field name => ${fieldName}  pada 'search'`
-        );
-      }
-
-      // Memeriksa apakah searchKey tidak kosong
-      if (searchKey) {
-        results = results.filter((user) => user[fieldName].includes(searchKey));
-        console.log(results);
-      } else {
-        results = [];
-      }
-    }
-
-    if (sort) {
-      const [fieldName, sortKey] = sort.split(':'); // untuk memecah sort menjadi field name dan sort order tanpa ada ":"
-      if (!['email', 'name'].includes(fieldName)) {
-        throw new Error(
-          `Salah menginput parameter field name => ${fieldName}  pada 'sort'`
-        );
-      }
-      const sortOptions = { [fieldName]: sortKey === 'desc' ? -1 : 1 }; // untuk opsi pengurutannya
-      results.sort((a, b) => {
-        // Metode mengurutkan elemen-elemen array
-        if (a[fieldName] < b[fieldName]) return -sortOptions[fieldName];
-        if (a[fieldName] > b[fieldName]) return sortOptions[fieldName];
-        return 0;
-      });
-    }
-    const indexAwal = (page_number - 1) * page_size; // untuk membuat index awal dari users sesuai page yang dimasukkan
-    const indexAkhir = page_number * page_size; // untuk membuat index akhir dari users sesuai page yang dimasukkan
-    const has_previous_page = page_number > 1 ? true : false;
-    const has_next_page = indexAkhir < results.length;
-    results = results.slice(indexAwal, indexAkhir); //untuk mencari result dari index yang diberikan (indexAwal), sampai yang diberikan(indexAkhir)
-
-    const count = results.length;
-
-    return response.status(200).json({
-      page_number,
-      page_size,
-      count,
-      has_previous_page,
-      has_next_page,
-      data: results,
-    });
+    const users = await usersService.getPaginationUsers(page_number, page_size, search, sort);
+    return response.status(200).json(users);
   } catch (error) {
     return next(error);
   }

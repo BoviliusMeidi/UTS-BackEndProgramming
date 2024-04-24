@@ -42,6 +42,49 @@ async function getUser(id) {
 }
 
 /**
+ * Get list of user pagination
+ * @param {string} page_number - Nomor halaman yang ditampilkan
+ * @param {string} page_size - Jumlah data yang dimunculkan per halaman
+ * @param {string} search - Filter Search, untuk mencari yang diinginkan
+ * @param {string} sort - Filter Sort, untuk pengurutan data
+ * @returns {Array}
+ */
+async function getPaginationUsers(page_number, page_size, search, sort) {
+  const users = await usersRepository.getPaginationUsers(
+    page_number,
+    page_size,
+    search,
+    sort
+  );
+
+  const indexAwal = (page_number - 1) * page_size; // untuk membuat index awal dari users sesuai page yang dimasukkan
+  const indexAkhir = page_number * page_size; // untuk membuat index akhir dari users sesuai page yang dimasukkan
+  const has_previous_page = page_number > 1 ? true : false; // untuk menunjukkan apakah ada halaman sebelumnya
+  const has_next_page = indexAkhir < users.length; // untuk Menunjukkan apakah ada halaman selanjutnya
+  const results = users.slice(indexAwal, indexAkhir); //untuk mencari result dari index yang diberikan (indexAwal), sampai yang diberikan(indexAkhir)
+  const count = results.length; //untuk jumlah total keseluruhan data
+
+  const resultUsers = []; // Untuk menampungkan result User dengan format yang diinginkan
+  for (let i = 0; i < count; i += 1) {
+    const user = results[i];
+    resultUsers.push({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    });
+  }
+
+  return {
+    page_number,
+    page_size,
+    count,
+    has_previous_page,
+    has_next_page,
+    data: resultUsers,
+  };
+}
+
+/**
  * Create new user
  * @param {string} name - Name
  * @param {string} email - Email
@@ -164,6 +207,7 @@ async function changePassword(userId, password) {
 module.exports = {
   getUsers,
   getUser,
+  getPaginationUsers,
   createUser,
   updateUser,
   deleteUser,

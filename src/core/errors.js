@@ -72,6 +72,11 @@ const errorTypes = {
     status: 403,
     code: 'INVALID_PASSWORD_ERROR',
   },
+  INVALID_BALANCE_MINIMUM:{
+    description: 'Invalid Balance Minimum',
+    status: 403,
+    code: 'INVALID_BALANCE_MINIMUM_ERROR'
+  },
   TOKEN_EXPIRED: {
     description: 'Token expired',
     status: 419,

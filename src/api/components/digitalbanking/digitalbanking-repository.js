@@ -28,16 +28,29 @@ async function getAccountbyID(id) {
 }
 
 /**
+ * Get Account by Account Number
+ * @param {string} account_number - Account Number
+ * @returns {Promise}
+ */
+async function getAccountbyAccountNumber(account_number) {
+  return DigitalBanking.findOne({ account_number });
+}
+
+/**
  * Create new account
  * @param {string} name - Name
  * @param {string} email - Email
  * @param {string} password - Hashed password
+ * @param {string} balance - Saldo Awal
+ * @param {string} account_number - Account Number
  */
-async function createAccount(name, email, password) {
+async function createAccount(name, email, password, balance, account_number) {
   return DigitalBanking.create({
     name,
     email,
     password,
+    balance,
+    account_number,
   });
 }
 
@@ -56,6 +69,23 @@ async function updateAccount(id, name, email) {
       $set: {
         name,
         email,
+      },
+    }
+  );
+}
+/**
+ * Transfer Balance account
+ * @param {string} account_number - Account Number
+ * @param {string} sumBalance - Total Balance
+ */
+async function updateTransferBalance(account_number, sumBalance) {
+  return DigitalBanking.updateOne(
+    {
+      account_number: account_number,
+    },
+    {
+      $set: {
+        balance: sumBalance,
       },
     }
   );
@@ -111,8 +141,10 @@ module.exports = {
   getAccounts,
   getAccountbyEmail,
   getAccountbyID,
+  getAccountbyAccountNumber,
   createAccount,
   updateAccount,
+  updateTransferBalance,
   deleteAccount,
   changePassword,
   getLoginAttempt,

@@ -13,6 +13,8 @@ async function registerAccount(request, response, next) {
     const email = request.body.email;
     const password = request.body.password;
     const password_confirm = request.body.password_confirm;
+    const balance = request.body.balance;
+    const minimumBalance = 50000; //untuk membuat value saldo minimum
 
     // Check confirmation password
     if (password !== password_confirm) {
@@ -32,10 +34,19 @@ async function registerAccount(request, response, next) {
       );
     }
 
+    // Balance must have like minimum balance
+    if (balance < minimumBalance) {
+      throw errorResponder(
+        errorTypes.INVALID_BALANCE_MINIMUM,
+        'Less than the minimum balance'
+      );
+    }
+
     const success = await digitalbankingServices.createAccount(
       name,
       email,
-      password
+      password,
+      balance
     );
     if (!success) {
       throw errorResponder(
@@ -44,7 +55,9 @@ async function registerAccount(request, response, next) {
       );
     }
 
-    return response.status(200).json({ name, email });
+    return response
+      .status(200)
+      .json({ name, email, message: 'Success Create Bank Account' });
   } catch (error) {
     return next(error);
   }
@@ -83,6 +96,49 @@ async function loginAccount(request, response, next) {
     }
 
     return response.status(200).json(loginSuccess);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+/**
+ * @param {object} request - Express request object
+ * @param {object} response - Express response object
+ * @param {object} next - Express route middlewares
+ * @returns {object} Response object or pass an error to the next route
+ */
+async function transferBalance(request, response, next) {
+  try {
+    const from_account_number = request.body.from_account_number;
+    const to_account_number = request.body.to_account_number;
+    const balanceTransfer = request.body.amountbalance;
+    const checkBalanceTransfer =
+      await digitalbankingServices.checkBalanceTransfer(
+        from_account_number,
+        balanceTransfer
+      );
+    const account = await digitalbankingServices.transferBalance(
+      from_account_number,
+      to_account_number,
+      balanceTransfer
+    );
+    if (!checkBalanceTransfer) {
+      throw errorResponder(
+        errorTypes.UNPROCESSABLE_ENTITY,
+        'Not Enough Balance for Transfer'
+      );
+    }
+
+    if (!account) {
+      throw errorResponder(
+        errorTypes.UNPROCESSABLE_ENTITY,
+        'Unknown account number'
+      );
+    }
+
+    return response
+      .status(200)
+      .json({ message: 'Transfer Balance Successfull' });
   } catch (error) {
     return next(error);
   }
@@ -231,6 +287,7 @@ async function changePassword(request, response, next) {
 module.exports = {
   registerAccount,
   loginAccount,
+  transferBalance,
   getAccount,
   getAccounts,
   updateAccount,

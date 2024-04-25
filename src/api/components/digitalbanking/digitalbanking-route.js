@@ -23,8 +23,14 @@ module.exports = (app) => {
     digitalBankingControlllers.loginAccount
   );
 
+  // For Transfer Balance
+  route.post(
+    '/login/transfer',celebrate(digitalBankingValidator.transferBalance),
+    digitalBankingControlllers.transferBalance
+  );
+
   // Get list of account
-  route.get('/profile', digitalBankingControlllers.getAccounts);
+  route.get('/account', digitalBankingControlllers.getAccounts);
 
   // Get Account by ID
   route.get('/profile/:id', digitalBankingControlllers.getAccount);

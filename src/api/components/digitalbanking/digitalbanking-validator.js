@@ -20,13 +20,22 @@ module.exports = {
         .required()
         .label('Password'),
       password_confirm: joi.string().required().label('Password confirmation'),
+      balance: joi.number().required().label('Balance'),
     },
   },
 
-  loginAccount:{
+  loginAccount: {
     body: {
       email: joi.string().email().required().label('Email'),
       password: joi.string().required().label('Password'),
+    },
+  },
+
+  transferBalance: {
+    body: {
+      from_account_number: joi.number().required().label('From Account Number'),
+      to_account_number: joi.number().required().label('To Account Number'),
+      amountbalance: joi.number().required().label('Amount Balance'),
     },
   },
 

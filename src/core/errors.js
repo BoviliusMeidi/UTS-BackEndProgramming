@@ -72,6 +72,11 @@ const errorTypes = {
     status: 403,
     code: 'INVALID_PASSWORD_ERROR',
   },
+  INVALID_ACCOUNT_NUMBER: {
+    description: 'Invalid account number',
+    status: 403,
+    code: 'INVALID_ACCOUNT_NUMBER_ERROR',
+  },
   INVALID_BALANCE_MINIMUM:{
     description: 'Invalid Balance Minimum',
     status: 403,

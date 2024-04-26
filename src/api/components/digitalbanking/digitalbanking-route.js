@@ -1,5 +1,6 @@
 const express = require('express');
 
+const authenticationMiddleware = require('../../middlewares/authentication-middleware');
 const digitalBankingControlllers = require('./digitalbanking-controller');
 const digitalBankingValidator = require('./digitalbanking-validator');
 const celebrate = require('../../../core/celebrate-wrappers');
@@ -12,6 +13,7 @@ module.exports = (app) => {
   // Register Account
   route.post(
     '/register',
+    authenticationMiddleware,
     celebrate(digitalBankingValidator.registerAccount),
     digitalBankingControlllers.registerAccount
   );
@@ -25,23 +27,90 @@ module.exports = (app) => {
 
   // For Transfer Balance
   route.post(
-    '/login/transfer',celebrate(digitalBankingValidator.transferBalance),
+    '/login/transfer',
+    authenticationMiddleware,
+    celebrate(digitalBankingValidator.transaction),
     digitalBankingControlllers.transferBalance
   );
 
   // Get list of account
-  route.get('/account', digitalBankingControlllers.getAccounts);
+  route.get(
+    '/account',
+    authenticationMiddleware,
+    digitalBankingControlllers.getAccounts
+  );
 
   // Get Account by ID
-  route.get('/profile/:id', digitalBankingControlllers.getAccount);
+  route.get(
+    '/account/:id',
+    authenticationMiddleware,
+    digitalBankingControlllers.getAccount
+  );
+
+  // Get account transactions
+  route.get(
+    '/transactions/:account_number',
+    authenticationMiddleware,
+    digitalBankingControlllers.getTransaction
+  );
+
+  // Get list of transactions
+  route.get(
+    '/transactions',
+    authenticationMiddleware,
+    digitalBankingControlllers.getTransactions
+  );
 
   // Update Account
   route.put(
-    '/profile/:id',
+    '/:id',
+    authenticationMiddleware,
     celebrate(digitalBankingValidator.updateAccount),
     digitalBankingControlllers.updateAccount
   );
 
+  // Update Account Number
+  route.put(
+    '/:id/change-account-number',
+    authenticationMiddleware,
+    celebrate(digitalBankingValidator.updateAccountNumber),
+    digitalBankingControlllers.updateAccountNumber
+  );
+
+  // Update Balance Amount (Setor Uang)
+  route.put(
+    '/:id/deposit-money',
+    authenticationMiddleware,
+    celebrate(digitalBankingValidator.updateBalance),
+    digitalBankingControlllers.updateBalance
+  );
+
+  // Change Account Password
+  route.put(
+    '/:id/change-password',
+    authenticationMiddleware,
+    celebrate(digitalBankingValidator.changePassword),
+    digitalBankingControlllers.changePassword
+  );
+
+  // Delete Transaction by Account ID
+  route.delete(
+    '/transactions/:id',
+    authenticationMiddleware,
+    digitalBankingControlllers.deleteTransaction
+  );
+
+  // Delete All Transaction
+  route.delete(
+    '/transactions',
+    authenticationMiddleware,
+    digitalBankingControlllers.deleteTransactions
+  );
+
   // Delete Account
-  route.delete('/profile/:id', digitalBankingControlllers.deleteAccount);
+  route.delete(
+    '/profile/:id',
+    authenticationMiddleware,
+    digitalBankingControlllers.deleteAccount
+  );
 };

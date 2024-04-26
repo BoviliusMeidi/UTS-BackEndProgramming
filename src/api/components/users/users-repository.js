@@ -26,6 +26,7 @@ async function getUser(id) {
  * @returns {Promise}
  */
 async function getPaginationUsers(page_number, page_size, search, sort) {
+  const fieldNameList = ['email', 'name']; // Untuk menampung list-list field name yang dapat dicari pengguna
   if (page_number < 0 || page_size < 0) {
     throw new Error(
       'page_number atau page_size harus bertipe integer (bilangan positif)'
@@ -34,7 +35,7 @@ async function getPaginationUsers(page_number, page_size, search, sort) {
   let results = await User.find();
   if (search) {
     const [fieldName, searchKey] = search.split(':'); // untuk memecah search menjadi field name dan search key tanpa ada ":"
-    if (!['email', 'name'].includes(fieldName)) {
+    if (!fieldNameList.includes(fieldName)) {
       throw new Error(
         `Salah menginput parameter field name => ${fieldName}  pada 'search'`
       );
@@ -43,7 +44,6 @@ async function getPaginationUsers(page_number, page_size, search, sort) {
     // Memeriksa apakah searchKey tidak kosong
     if (searchKey) {
       results = results.filter((user) => user[fieldName].includes(searchKey));
-      console.log(results);
     } else {
       results = [];
     }
@@ -51,7 +51,7 @@ async function getPaginationUsers(page_number, page_size, search, sort) {
 
   if (sort) {
     const [fieldName, sortKey] = sort.split(':'); // untuk memecah sort menjadi field name dan sort order tanpa ada ":"
-    if (!['email', 'name'].includes(fieldName)) {
+    if (!fieldNameList.includes(fieldName)) {
       throw new Error(
         `Salah menginput parameter field name => ${fieldName}  pada 'sort'`
       );

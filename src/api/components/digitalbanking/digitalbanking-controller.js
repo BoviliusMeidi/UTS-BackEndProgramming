@@ -10,7 +10,8 @@ const { errorResponder, errorTypes } = require('../../../core/errors');
 async function registerAccount(request, response, next) {
   try {
     const name = request.body.name;
-    const email = request.body.email;
+    const emailBefore = request.body.email;
+    const email = emailBefore.toLowerCase(); // default email (huruf kecil semua)
     const password = request.body.password;
     const password_confirm = request.body.password_confirm;
     const balance = request.body.balance;
@@ -70,7 +71,9 @@ async function registerAccount(request, response, next) {
  * @returns {object} Response object or pass an error to the next route
  */
 async function loginAccount(request, response, next) {
-  const { email, password } = request.body;
+  const emailBefore = request.body.email;
+  const email = emailBefore.toLowerCase(); // default email (huruf kecil semua)
+  const password = request.body.password;
 
   try {
     // Check Limit login attempt
@@ -112,22 +115,24 @@ async function transferBalance(request, response, next) {
     const from_account_number = request.body.from_account_number;
     const to_account_number = request.body.to_account_number;
     const balanceTransfer = request.body.amountbalance;
+    const description = request.body.description;
     const checkBalanceTransfer =
       await digitalbankingServices.checkBalanceTransfer(
         from_account_number,
         balanceTransfer
       );
-    const account = await digitalbankingServices.transferBalance(
-      from_account_number,
-      to_account_number,
-      balanceTransfer
-    );
     if (!checkBalanceTransfer) {
       throw errorResponder(
         errorTypes.UNPROCESSABLE_ENTITY,
         'Not Enough Balance for Transfer'
       );
     }
+
+    const account = await digitalbankingServices.transferBalance(
+      from_account_number,
+      to_account_number,
+      balanceTransfer
+    );
 
     if (!account) {
       throw errorResponder(
@@ -136,9 +141,16 @@ async function transferBalance(request, response, next) {
       );
     }
 
+    const transactionDetail = await digitalbankingServices.saveTransaction(
+      from_account_number,
+      to_account_number,
+      balanceTransfer,
+      description
+    );
+
     return response
       .status(200)
-      .json({ message: 'Transfer Balance Successfull' });
+      .json({ transactionDetail, message: 'Transfer Balance Successfull' });
   } catch (error) {
     return next(error);
   }
@@ -172,9 +184,72 @@ async function getAccount(request, response, next) {
  * @returns {object} Response object or pass an error to the next route
  */
 async function getAccounts(request, response, next) {
+  const type_pagination = 'account'; // Untuk Tipe Pagination Result yang diiinginkan
+  const page_number = parseInt(request.query.page_number) || 1; // parseInt => untuk dirubah menjadi integer
+  const page_size = parseInt(request.query.page_size) || Infinity; // parseInt => untuk dirubah menjadi integer
+  const searchBefore = request.query.search;
+  let search;
+  if (searchBefore) {
+    search = searchBefore.toLowerCase(); // Untuk menjamin fleksibilitas pengguna (case-insensitive)
+  }
+  const sort = request.query.sort;
   try {
-    const accounts = await digitalbankingServices.getAccounts();
+    const accounts = await digitalbankingServices.getPagination(
+      page_number,
+      page_size,
+      search,
+      sort,
+      type_pagination
+    );
     return response.status(200).json(accounts);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+/**
+ * @param {object} request - Express request object
+ * @param {object} response - Express response object
+ * @param {object} next - Express route middlewares
+ * @returns {object} Response object or pass an error to the next route
+ */
+async function getTransaction(request, response, next) {
+  try {
+    const account_number = request.params.account_number;
+    const transactions =
+      await digitalbankingServices.getTransaction(account_number);
+    return response.status(200).json(transactions);
+  } catch (error) {
+    return next(error);
+  }
+}
+/**
+ * @param {object} request - Express request object
+ * @param {object} response - Express response object
+ * @param {object} next - Express route middlewares
+ * @returns {object} Response object or pass an error to the next route
+ */
+async function getTransactions(request, response, next) {
+  const type_pagination = 'transaction'; // Untuk Tipe Pagination Result yang diiinginkan
+  const page_number = parseInt(request.query.page_number) || 1; // parseInt => untuk dirubah menjadi integer
+  const page_size = parseInt(request.query.page_size) || Infinity; // parseInt => untuk dirubah menjadi integer
+  const searchBefore = request.query.search;
+  let search;
+  if (searchBefore) {
+    search = searchBefore.toLowerCase(); // Untuk menjamin fleksibilitas pengguna (case-insensitive)
+  }
+  const sort = request.query.sort;
+  try {
+    const pagination = await digitalbankingServices.getPagination(
+      page_number,
+      page_size,
+      search,
+      sort,
+      type_pagination
+    );
+    const transactions = await digitalbankingServices.getTransactions();
+    // pagination.data = [...pagination.data, ...transactions]; //Menyatukan data pagination dan transaction
+    return response.status(200).json({ ...pagination }); // ... || supaya tidak mengoutput title paginationnya
   } catch (error) {
     return next(error);
   }
@@ -190,7 +265,8 @@ async function updateAccount(request, response, next) {
   try {
     const id = request.params.id;
     const name = request.body.name;
-    const email = request.body.email;
+    const emailBefore = request.body.email;
+    const email = emailBefore.toLowerCase(); // default email (huruf kecil semua)
 
     // Email must be unique
     const emailIsRegistered =
@@ -215,6 +291,154 @@ async function updateAccount(request, response, next) {
     return next(error);
   }
 }
+/**
+ * @param {object} request - Express request object
+ * @param {object} response - Express response object
+ * @param {object} next - Express route middlewares
+ * @returns {object} Response object or pass an error to the next route
+ */
+async function updateAccountNumber(request, response, next) {
+  try {
+    // Check old account number
+    if (
+      !(await digitalbankingServices.checkAccountNumber(
+        request.params.id,
+        request.body.account_number_old
+      ))
+    ) {
+      throw errorResponder(
+        errorTypes.INVALID_CREDENTIALS,
+        'Wrong old account number'
+      );
+    }
+    // Check account number exist
+    if (
+      await digitalbankingServices.accountNumberExist(
+        request.body.account_number_new
+      )
+    ) {
+      throw errorResponder(
+        errorTypes.UNPROCESSABLE_ENTITY,
+        'Account Number Exist !!!'
+      );
+    }
+    // Check account number confirmation
+    if (
+      request.body.account_number_new !== request.body.account_number_confirm
+    ) {
+      throw errorResponder(
+        errorTypes.INVALID_ACCOUNT_NUMBER,
+        'Account number confirmation mismatched'
+      );
+    }
+
+    const changeSuccess = await digitalbankingServices.changeAccountNumber(
+      request.params.id,
+      request.body.account_number_new
+    );
+
+    if (!changeSuccess) {
+      throw errorResponder(
+        errorTypes.UNPROCESSABLE_ENTITY,
+        'Failed to change account number'
+      );
+    }
+
+    return response
+      .status(200)
+      .json({ message: 'Succesfully change account number' });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+/**
+ * @param {object} request - Express request object
+ * @param {object} response - Express response object
+ * @param {object} next - Express route middlewares
+ * @returns {object} Response object or pass an error to the next route
+ */
+async function updateBalance(request, response, next) {
+  try {
+    const to_account_number = request.body.to_account_number;
+    const balanceTransfer = request.body.amountnominal;
+    const description = request.body.description;
+
+    const account = await digitalbankingServices.balanceDeposit(
+      to_account_number,
+      balanceTransfer
+    );
+
+    if (!account) {
+      throw errorResponder(
+        errorTypes.UNPROCESSABLE_ENTITY,
+        'Unknown account number'
+      );
+    }
+
+    const transactionDetail =
+      await digitalbankingServices.saveDepositTransaction(
+        to_account_number,
+        balanceTransfer,
+        description
+      );
+
+    return response
+      .status(200)
+      .json({ transactionDetail, message: 'Deposit Money Successfull' });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+/**
+ * @param {object} request - Express request object
+ * @param {object} response - Express response object
+ * @param {object} next - Express route middlewares
+ * @returns {object} Response object or pass an error to the next route
+ */
+async function deleteTransaction(request, response, next) {
+  try {
+    const id = request.params.id;
+
+    const success = await digitalbankingServices.deleteTransaction(id);
+    if (!success) {
+      throw errorResponder(
+        errorTypes.UNPROCESSABLE_ENTITY,
+        'Failed to delete transactions'
+      );
+    }
+
+    return response
+      .status(200)
+      .json({ message: 'Successfully delete Transactions Account Bank' });
+  } catch (error) {
+    return next(error);
+  }
+}
+/**
+ * @param {object} request - Express request object
+ * @param {object} response - Express response object
+ * @param {object} next - Express route middlewares
+ * @returns {object} Response object or pass an error to the next route
+ */
+async function deleteTransactions(request, response, next) {
+  try {
+    const success = await digitalbankingServices.deleteTransactions();
+    if (!success) {
+      throw errorResponder(
+        errorTypes.UNPROCESSABLE_ENTITY,
+        'Failed to delete transactions'
+      );
+    }
+
+    return response
+      .status(200)
+      .json({ message: 'Successfully delete all Transactions' });
+  } catch (error) {
+    return next(error);
+  }
+}
 
 /**
  * @param {object} request - Express request object
@@ -234,7 +458,9 @@ async function deleteAccount(request, response, next) {
       );
     }
 
-    return response.status(200).json({ id });
+    return response
+      .status(200)
+      .json({ message: 'Successfully delete account Bank' });
   } catch (error) {
     return next(error);
   }
@@ -290,7 +516,13 @@ module.exports = {
   transferBalance,
   getAccount,
   getAccounts,
+  getTransaction,
+  getTransactions,
   updateAccount,
+  updateAccountNumber,
+  updateBalance,
+  deleteTransaction,
+  deleteTransactions,
   deleteAccount,
   changePassword,
 };

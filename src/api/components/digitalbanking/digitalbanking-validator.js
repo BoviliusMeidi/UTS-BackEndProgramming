@@ -31,11 +31,17 @@ module.exports = {
     },
   },
 
-  transferBalance: {
+  transaction: {
     body: {
-      from_account_number: joi.number().required().label('From Account Number'),
       to_account_number: joi.number().required().label('To Account Number'),
+      from_account_number: joi.number().required().label('From Account Number'),
       amountbalance: joi.number().required().label('Amount Balance'),
+      description: joi
+        .string()
+        .min(1)
+        .max(256)
+        .required()
+        .label('Description Transaction'),
     },
   },
 
@@ -43,6 +49,39 @@ module.exports = {
     body: {
       name: joi.string().min(1).max(100).required().label('Name'),
       email: joi.string().email().required().label('Email'),
+    },
+  },
+
+  updateAccountNumber: {
+    body: {
+      account_number_old: joi.number().required().label('Old Account Number'),
+      account_number_new: joi
+        .number()
+        .min(1e11)
+        .max(1e12 - 1)
+        .required()
+        .label('New Account Number')
+        .messages({
+          'number.min': 'Password harus memiliki setidaknya 12 digit',
+          'number.max': 'Password tidak boleh lebih dari 12 digit',
+        }),
+      account_number_confirm: joi
+        .number()
+        .required()
+        .label('Account Number Confirmation'),
+    },
+  },
+
+  updateBalance: {
+    body: {
+      to_account_number: joi.number().required().label('To Account Number'),
+      amountnominal: joi.number().required().label('Amount Nominal'),
+      description: joi
+        .string()
+        .min(1)
+        .max(256)
+        .required()
+        .label('Description Transaction'),
     },
   },
 

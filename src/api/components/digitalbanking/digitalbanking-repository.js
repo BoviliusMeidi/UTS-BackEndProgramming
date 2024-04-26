@@ -10,6 +10,81 @@ async function getAccounts() {
 }
 
 /**
+ * Get a list of accounts with pagination digital banking
+ * @param {string} page_number - Nomor halaman yang ditampilkan
+ * @param {string} page_size - Jumlah data yang dimunculkan per halaman
+ * @param {string} search - Filter Search, untuk mencari yang diinginkan
+ * @param {string} sort - Filter Sort, untuk pengurutan data
+ * @returns {Promise}
+ */
+async function getPagination(page_number, page_size, search, sort) {
+  const fieldNameList = ['name', 'account_number', 'email', 'name']; // Untuk menampung list-list field name yang dapat dicari pengguna
+  if (page_number < 0 || page_size < 0) {
+    throw new Error(
+      'page_number atau page_size harus bertipe integer (bilangan positif)'
+    );
+  }
+  let results = await DigitalBanking.find();
+  if (search) {
+    const [fieldName, searchKey] = search.split(':'); // untuk memecah search menjadi field name dan search key tanpa ada ":"
+    if (!fieldNameList.includes(fieldName)) {
+      throw new Error(
+        `Salah menginput parameter field name => ${fieldName}  pada 'search'`
+      );
+    }
+
+    // Memeriksa apakah searchKey tidak kosong
+    if (fieldName === 'account_number' && searchKey) {
+      results = results.filter(
+        (account) => account[fieldName] === parseInt(searchKey)
+      );
+    } else if (fieldName === 'name' && searchKey) {
+      results = results.filter((account) =>
+        account[fieldName].includes(searchKey)
+      );
+    } else {
+      results = [];
+    }
+  }
+
+  if (sort) {
+    const [fieldName, sortKey] = sort.split(':'); // untuk memecah sort menjadi field name dan sort order tanpa ada ":"
+    if (!fieldNameList.includes(fieldName)) {
+      throw new Error(
+        `Salah menginput parameter field name => ${fieldName}  pada 'sort'`
+      );
+    }
+    const sortOptions = { [fieldName]: sortKey === 'desc' ? -1 : 1 }; // untuk opsi pengurutannya
+    results.sort((a, b) => {
+      // Metode mengurutkan elemen-elemen array
+      if (a[fieldName] < b[fieldName]) return -sortOptions[fieldName];
+      if (a[fieldName] > b[fieldName]) return sortOptions[fieldName];
+      return 0;
+    });
+  }
+  return results;
+}
+
+/**
+ * Get an accounts transactions digital banking
+ * @param {number} account_number - Account Number
+ * @returns {Promise}
+ */
+async function getTransaction(account_number) {
+  return DigitalBanking.findOne({ account_number });
+}
+
+/**
+ * Get a list of accounts transactions digital banking
+ * @returns {Promise}
+ */
+async function getTransactions() {
+  const allAccount = await DigitalBanking.find();
+  const transactions = allAccount.flatMap((account) => account.transactions);
+  return transactions;
+}
+
+/**
  * Get Account by email
  * @param {string} email - Email
  * @returns {Promise}
@@ -92,6 +167,21 @@ async function updateTransferBalance(account_number, sumBalance) {
 }
 
 /**
+ * Delete transaction by id
+ * @param {string} id - Account ID
+ * @returns {Promise}
+ */
+async function deleteTransaction(id) {
+  return DigitalBanking.updateOne({ _id: id }, { $set: { transactions: [] } });
+}
+/**
+ * Delete all transaction
+ * @returns {Promise}
+ */
+async function deleteTransactions() {
+  return DigitalBanking.updateMany({ $set: { transactions: [] } });
+}
+/**
  * Delete a account
  * @param {string} id - Account ID
  * @returns {Promise}
@@ -108,6 +198,19 @@ async function deleteAccount(id) {
  */
 async function changePassword(id, password) {
   return DigitalBanking.updateOne({ _id: id }, { $set: { password } });
+}
+
+/**
+ * Update account number
+ * @param {string} id - account ID
+ * @param {string} account_number - New account Number
+ * @returns {Promise}
+ */
+async function changeAccountNumber(id, account_number) {
+  return DigitalBanking.updateOne(
+    { _id: id },
+    { $set: { account_number: account_number } }
+  );
 }
 
 /**
@@ -139,14 +242,20 @@ async function resetLoginAttempt() {
 
 module.exports = {
   getAccounts,
+  getPagination,
+  getTransaction,
+  getTransactions,
   getAccountbyEmail,
   getAccountbyID,
   getAccountbyAccountNumber,
   createAccount,
   updateAccount,
   updateTransferBalance,
+  deleteTransaction,
+  deleteTransactions,
   deleteAccount,
   changePassword,
+  changeAccountNumber,
   getLoginAttempt,
   saveLoginAttempt,
   resetLoginAttempt,

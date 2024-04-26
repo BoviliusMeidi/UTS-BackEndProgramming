@@ -11,11 +11,20 @@ const { errorResponder, errorTypes } = require('../../../core/errors');
 async function getUsers(request, response, next) {
   const page_number = parseInt(request.query.page_number) || 1; // parseInt => untuk dirubah menjadi integer
   const page_size = parseInt(request.query.page_size) || Infinity; // parseInt => untuk dirubah menjadi integer
-  const search = request.query.search;
+  const searchBefore = request.query.search;
+  let search;
+  if (searchBefore) {
+    search = searchBefore.toLowerCase(); // Untuk menjamin fleksibilitas pengguna (case-insensitive)
+  }
   const sort = request.query.sort;
 
   try {
-    const users = await usersService.getPaginationUsers(page_number, page_size, search, sort);
+    const users = await usersService.getPaginationUsers(
+      page_number,
+      page_size,
+      search,
+      sort
+    );
     return response.status(200).json(users);
   } catch (error) {
     return next(error);
@@ -53,7 +62,8 @@ async function getUser(request, response, next) {
 async function createUser(request, response, next) {
   try {
     const name = request.body.name;
-    const email = request.body.email;
+    const emailBefore = request.body.email;
+    const email = emailBefore.toLowerCase(); // default email (huruf kecil semua)
     const password = request.body.password;
     const password_confirm = request.body.password_confirm;
 
@@ -99,7 +109,8 @@ async function updateUser(request, response, next) {
   try {
     const id = request.params.id;
     const name = request.body.name;
-    const email = request.body.email;
+    const emailBefore = request.body.email;
+    const email = emailBefore.toLowerCase(); // default email (huruf kecil semua)
 
     // Email must be unique
     const emailIsRegistered = await usersService.emailIsRegistered(email);

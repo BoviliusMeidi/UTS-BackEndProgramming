@@ -1,5 +1,5 @@
 const logger = require('../src/core/logger')('api');
-const { User } = require('../src/models');
+const { User, DigitalBanking } = require('../src/models');
 const { hashPassword } = require('../src/utils/password');
 
 const name = 'Administrator';
@@ -15,7 +15,12 @@ logger.info('Creating default users');
       email,
     });
 
-    if (numUsers > 0) {
+    const numAccount = await DigitalBanking.countDocuments({
+      name,
+      email,
+    })
+
+    if (numUsers > 0 && numAccount > 0) {
       throw new Error(`User ${email} already exists`);
     }
 
@@ -25,6 +30,12 @@ logger.info('Creating default users');
       email,
       password: hashedPassword,
     });
+
+    await DigitalBanking.create({
+      name,
+      email,
+      password: hashedPassword,
+    })
   } catch (e) {
     logger.error(e);
   } finally {

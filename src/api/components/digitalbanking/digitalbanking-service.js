@@ -53,6 +53,8 @@ async function getPagination(
 
   const transactions = await getTransactions();
 
+  console.log(transactions);
+
   const indexAwal = (page_number - 1) * page_size; // untuk membuat index awal dari users sesuai page yang dimasukkan
   const indexAkhir = page_number * page_size; // untuk membuat index akhir dari users sesuai page yang dimasukkan
   const has_previous_page = page_number > 1 ? true : false; // untuk menunjukkan apakah ada halaman sebelumnya
@@ -69,7 +71,6 @@ async function getPagination(
         account_id: account.id,
         account_number: account.account_number,
         name: account.name,
-        balance: account.balance,
       });
     }
   }
@@ -118,6 +119,7 @@ async function getAccount(id) {
     account_number: account.account_number,
     name: account.name,
     email: account.email,
+    balance : account.balance,
   };
 }
 
@@ -302,7 +304,7 @@ async function saveTransaction(
       name_to: to_account.name,
       account_number_to: to_account.account_number,
       amount: balanceTransfer,
-      date: new Date(),
+      date: await digitalbankingRepository.getDateNow(),
       description: description,
     };
 
@@ -311,7 +313,7 @@ async function saveTransaction(
       type_transaction: 'Beneficiary (Penerima Transaksi)',
       account_number_from: from_account.account_number,
       amount: balanceTransfer,
-      date: new Date(),
+      date: await digitalbankingRepository.getDateNow(),
       description: description,
     };
 
@@ -349,12 +351,11 @@ async function saveDepositTransaction(
       type_transaction: 'Beneficiary (Penerima Transaksi)',
       account_number_from: to_account.account_number,
       amount: balanceTransfer,
-      date: new Date(),
+      date: await digitalbankingRepository.getDateNow(),
       description: description,
     };
 
     to_account.transactions.push(toTransaction);
-
     await to_account.save();
 
     return toTransaction;

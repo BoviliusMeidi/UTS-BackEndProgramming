@@ -130,6 +130,16 @@ async function createAccount(name, email, password, balance, account_number) {
 }
 
 /**
+ * Function mendapatkan waktu sekarang
+ * @returns {object} Response object or pass an error to the next route
+ */
+async function getDateNow() {
+  const date = new Date();
+  const localTime = new Date(date.getTime() - (-7 * 60 * 60 * 1000));
+  return localTime;
+}
+
+/**
  * Update existing account
  * @param {string} id - Account ID
  * @param {string} name - Name
@@ -248,6 +258,7 @@ module.exports = {
   getAccountbyEmail,
   getAccountbyID,
   getAccountbyAccountNumber,
+  getDateNow,
   createAccount,
   updateAccount,
   updateTransferBalance,

@@ -63,7 +63,7 @@ module.exports = (app) => {
 
   // Update Account
   route.put(
-    '/:id',
+    '/account/:id',
     authenticationMiddleware,
     celebrate(digitalBankingValidator.updateAccount),
     digitalBankingControlllers.updateAccount
@@ -71,7 +71,7 @@ module.exports = (app) => {
 
   // Update Account Number
   route.put(
-    '/:id/change-account-number',
+    '/account/:id/change-account-number',
     authenticationMiddleware,
     celebrate(digitalBankingValidator.updateAccountNumber),
     digitalBankingControlllers.updateAccountNumber
@@ -79,7 +79,7 @@ module.exports = (app) => {
 
   // Update Balance Amount (Setor Uang)
   route.put(
-    '/:id/deposit-money',
+    '/account/:id/deposit-money',
     authenticationMiddleware,
     celebrate(digitalBankingValidator.updateBalance),
     digitalBankingControlllers.updateBalance
@@ -87,7 +87,7 @@ module.exports = (app) => {
 
   // Change Account Password
   route.put(
-    '/:id/change-password',
+    '/account/:id/change-password',
     authenticationMiddleware,
     celebrate(digitalBankingValidator.changePassword),
     digitalBankingControlllers.changePassword

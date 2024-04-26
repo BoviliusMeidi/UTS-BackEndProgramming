@@ -1,5 +1,6 @@
 const digitalbankingServices = require('./digitalbanking-service');
 const { errorResponder, errorTypes } = require('../../../core/errors');
+let attempt = 5; //menginisialisasi percobaan login untuk passing ke messages
 
 /**
  * @param {object} request - Express request object
@@ -82,7 +83,7 @@ async function loginAccount(request, response, next) {
     if (limitLoginSuccess) {
       throw errorResponder(
         errorTypes.FORBIDDEN,
-        'Too many failed login attempts.'
+        'Too many failed login attempts. Must Wait 30 Minutes, to try Login again.'
       );
     }
     // Check login credentials
@@ -92,11 +93,14 @@ async function loginAccount(request, response, next) {
     );
 
     if (!loginSuccess) {
+      attempt--;
       throw errorResponder(
         errorTypes.INVALID_CREDENTIALS,
-        'Wrong email or password'
+        `Wrong email or password, you have limit attempt ${attempt} more again`
       );
     }
+
+    attempt = 5;
 
     return response.status(200).json(loginSuccess);
   } catch (error) {
@@ -247,8 +251,6 @@ async function getTransactions(request, response, next) {
       sort,
       type_pagination
     );
-    const transactions = await digitalbankingServices.getTransactions();
-    // pagination.data = [...pagination.data, ...transactions]; //Menyatukan data pagination dan transaction
     return response.status(200).json({ ...pagination }); // ... || supaya tidak mengoutput title paginationnya
   } catch (error) {
     return next(error);
@@ -286,7 +288,7 @@ async function updateAccount(request, response, next) {
       );
     }
 
-    return response.status(200).json({ id });
+    return response.status(200).json({ id, name, email });
   } catch (error) {
     return next(error);
   }
@@ -489,7 +491,10 @@ async function changePassword(request, response, next) {
         request.body.password_old
       ))
     ) {
-      throw errorResponder(errorTypes.INVALID_CREDENTIALS, 'Wrong password');
+      throw errorResponder(
+        errorTypes.INVALID_CREDENTIALS,
+        'Wrong old password'
+      );
     }
 
     const changeSuccess = await digitalbankingServices.changePassword(
@@ -504,7 +509,12 @@ async function changePassword(request, response, next) {
       );
     }
 
-    return response.status(200).json({ id: request.params.id });
+    return response
+      .status(200)
+      .json({
+        id: request.params.id,
+        messages: 'Change Password Successfully !!!',
+      });
   } catch (error) {
     return next(error);
   }

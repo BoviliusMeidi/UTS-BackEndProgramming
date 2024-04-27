@@ -5,6 +5,7 @@ const {
   generateTransactionNumber,
 } = require('../../../utils/account-number');
 const { generateToken } = require('../../../utils/session-token');
+const { default: mongoose } = require('mongoose');
 const limitAttempts = 5; // Menginisialisai limit attempts
 const timeMinutesAttempt = 30; // Menginisialisasi jangka waktu (menit)
 
@@ -29,7 +30,7 @@ async function getAccounts() {
 }
 
 /**
- * Get list of account
+ * Get list of account by pagination
  * @param {string} page_number - Nomor halaman yang ditampilkan
  * @param {string} page_size - Jumlah data yang dimunculkan per halaman
  * @param {string} search - Filter Search, untuk mencari yang diinginkan
@@ -52,8 +53,6 @@ async function getPagination(
   );
 
   const transactions = await getTransactions();
-
-  console.log(transactions);
 
   const indexAwal = (page_number - 1) * page_size; // untuk membuat index awal dari users sesuai page yang dimasukkan
   const indexAkhir = page_number * page_size; // untuk membuat index akhir dari users sesuai page yang dimasukkan
@@ -91,6 +90,7 @@ async function getPagination(
       });
     }
   }
+
   return {
     page_number,
     page_size,
@@ -104,7 +104,7 @@ async function getPagination(
 /**
  * Get account detail
  * @param {string} id - Account ID
- * @returns {Object}
+ * @returns {Array}
  */
 async function getAccount(id) {
   const account = await digitalbankingRepository.getAccountbyID(id);
@@ -119,7 +119,7 @@ async function getAccount(id) {
     account_number: account.account_number,
     name: account.name,
     email: account.email,
-    balance : account.balance,
+    balance: account.balance,
   };
 }
 
@@ -171,8 +171,9 @@ async function getTransaction(account_number) {
     return null;
   }
 }
+
 /**
- * Get list of account
+ * Get list of account transactions
  * @returns {Array}
  */
 async function getTransactions() {
@@ -328,6 +329,7 @@ async function saveTransaction(
     return null;
   }
 }
+
 /**
  * Save deposit transaction
  * @param {number} to_account_number - To Account Number
@@ -363,6 +365,7 @@ async function saveDepositTransaction(
     return null;
   }
 }
+
 /**
  * Update existing account
  * @param {string} id - Account ID
@@ -461,7 +464,7 @@ async function emailIsRegistered(email) {
 }
 
 /**
- * Check whether the email is registered
+ * Check whether the account number already have or not
  * @param {string} account_number - Account Number
  * @returns {boolean}
  */
@@ -477,6 +480,26 @@ async function accountNumberExist(account_number) {
 }
 
 /**
+ * Check whether the account number id is correct
+ * @param {string} id - account ID
+ * @returns {boolean}
+ */
+async function checkAccountbyId(id) {
+  const defaultId = /^[0-9a-fA-F]{24}$/; // defaultId harus ada 24 karakter
+  const testId = defaultId.test(id); // untuk mentest apakah sesuai dengan defaultId yang ada (24 karakter)
+
+  if (!testId) {
+    return null;
+  }
+
+  const account = await digitalbankingRepository.getAccountbyID(id);
+  if (account) {
+    return true;
+  }
+  return null;
+}
+
+/**
  * Check whether the password is correct
  * @param {string} id - account ID
  * @param {string} password - Password
@@ -485,6 +508,19 @@ async function accountNumberExist(account_number) {
 async function checkPassword(id, password) {
   const account = await digitalbankingRepository.getAccountbyID(id);
   return passwordMatched(password, account.password);
+}
+
+/**
+ * Check whether the account number is correct just by account number
+ * @param {string} account_number - account Number
+ * @returns {boolean}
+ */
+async function checkAccountNumberbyAccountNumber(account_number) {
+  const account = await digitalbankingRepository.getAccountbyAccountNumber(account_number);
+  if (account) {
+    return true;
+  }
+  return null;
 }
 
 /**
@@ -528,6 +564,7 @@ async function changePassword(id, password) {
 
   return true;
 }
+
 /**
  * Change account number
  * @param {string} id - account ID
@@ -591,7 +628,7 @@ async function checkLoginCredentials(email, password) {
 
 /**
  * Check  for login attempt.
- * @returns {object} Mengembalikan "true", jika melebihi limit attempts.
+ * @returns {boolean} Mengembalikan "true", jika melebihi limit attempts.
  */
 async function checkLoginAttempt() {
   const currentTime = Date.now(); // untuk menginisialisai waktu saat login diproses
@@ -632,7 +669,9 @@ module.exports = {
   deleteTransactions,
   deleteAccount,
   emailIsRegistered,
+  checkAccountbyId,
   accountNumberExist,
+  checkAccountNumberbyAccountNumber,
   checkAccountNumber,
   checkPassword,
   changePassword,

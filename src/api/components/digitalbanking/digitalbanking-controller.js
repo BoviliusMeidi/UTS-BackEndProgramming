@@ -3,6 +3,7 @@ const { errorResponder, errorTypes } = require('../../../core/errors');
 let attempt = 5; //menginisialisasi percobaan login untuk passing ke messages
 
 /**
+ * Untuk meregister digital banking account
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -66,6 +67,7 @@ async function registerAccount(request, response, next) {
 }
 
 /**
+ * Untuk login digital banking account
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -93,14 +95,14 @@ async function loginAccount(request, response, next) {
     );
 
     if (!loginSuccess) {
-      attempt--;
+      attempt--; // mengurangi attempt jika gagal login
       throw errorResponder(
         errorTypes.INVALID_CREDENTIALS,
         `Wrong email or password, you have limit attempt ${attempt} more again`
       );
     }
 
-    attempt = 5;
+    attempt = 5; // mengembalikan default value attempt, ketika login berhasil
 
     return response.status(200).json(loginSuccess);
   } catch (error) {
@@ -109,6 +111,7 @@ async function loginAccount(request, response, next) {
 }
 
 /**
+ * Untuk transfer balance dari akun pemberi(remitter), ke akun penerima(beneficiary)
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -120,6 +123,8 @@ async function transferBalance(request, response, next) {
     const to_account_number = request.body.to_account_number;
     const balanceTransfer = request.body.amountbalance;
     const description = request.body.description;
+
+    // Check balance transfer, apakah mencukupi untuk transfer uang, atau tidak
     const checkBalanceTransfer =
       await digitalbankingServices.checkBalanceTransfer(
         from_account_number,
@@ -145,6 +150,7 @@ async function transferBalance(request, response, next) {
       );
     }
 
+    // menyimpan transaction yang terjadi
     const transactionDetail = await digitalbankingServices.saveTransaction(
       from_account_number,
       to_account_number,
@@ -161,6 +167,7 @@ async function transferBalance(request, response, next) {
 }
 
 /**
+ * Untuk mendapatkan digital banking account berdasarkan id yang diberikan
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -168,6 +175,14 @@ async function transferBalance(request, response, next) {
  */
 async function getAccount(request, response, next) {
   try {
+    // Check id
+    if (!(await digitalbankingServices.checkAccountbyId(request.params.id))) {
+      throw errorResponder(
+        errorTypes.INVALID_CREDENTIALS,
+        'Wrong id account number'
+      );
+    }
+
     const account = await digitalbankingServices.getAccount(request.params.id);
 
     if (!account) {
@@ -181,7 +196,7 @@ async function getAccount(request, response, next) {
 }
 
 /**
- * Handle get list of users request
+ * Untuk mendapatkan list digital banking account
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -189,14 +204,15 @@ async function getAccount(request, response, next) {
  */
 async function getAccounts(request, response, next) {
   const type_pagination = 'account'; // Untuk Tipe Pagination Result yang diiinginkan
-  const page_number = parseInt(request.query.page_number) || 1; // parseInt => untuk dirubah menjadi integer
-  const page_size = parseInt(request.query.page_size) || Infinity; // parseInt => untuk dirubah menjadi integer
+  const page_number = parseInt(request.query.page_number) || 1; // parseInt => untuk dirubah menjadi integer, memiliki default value 1
+  const page_size = parseInt(request.query.page_size) || Infinity; // parseInt => untuk dirubah menjadi integer, memiliki default value infinity (dimana kita tidak tau jumlah user yang ada)
   const searchBefore = request.query.search;
   let search;
   if (searchBefore) {
     search = searchBefore.toLowerCase(); // Untuk menjamin fleksibilitas pengguna (case-insensitive)
   }
   const sort = request.query.sort;
+
   try {
     const accounts = await digitalbankingServices.getPagination(
       page_number,
@@ -212,6 +228,7 @@ async function getAccounts(request, response, next) {
 }
 
 /**
+ * Untuk mendapatkan transaction yang dilakukan oleh pengguna, berdasarkan account number yang diberikan
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -219,15 +236,24 @@ async function getAccounts(request, response, next) {
  */
 async function getTransaction(request, response, next) {
   try {
-    const account_number = request.params.account_number;
+    // Check id
+    if (!(await digitalbankingServices.checkAccountNumberbyAccountNumber(request.params.account_number))) {
+      throw errorResponder(
+        errorTypes.INVALID_CREDENTIALS,
+        'Wrong account number'
+      );
+    }
+
     const transactions =
-      await digitalbankingServices.getTransaction(account_number);
+      await digitalbankingServices.getTransaction(request.params.account_number);
     return response.status(200).json(transactions);
   } catch (error) {
     return next(error);
   }
 }
+
 /**
+ * Untuk mendapatkan list transaction yang dilakukan oleh semua pengguna
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -235,8 +261,8 @@ async function getTransaction(request, response, next) {
  */
 async function getTransactions(request, response, next) {
   const type_pagination = 'transaction'; // Untuk Tipe Pagination Result yang diiinginkan
-  const page_number = parseInt(request.query.page_number) || 1; // parseInt => untuk dirubah menjadi integer
-  const page_size = parseInt(request.query.page_size) || Infinity; // parseInt => untuk dirubah menjadi integer
+  const page_number = parseInt(request.query.page_number) || 1; // parseInt => untuk dirubah menjadi integer, memiliki default value 1
+  const page_size = parseInt(request.query.page_size) || Infinity; // parseInt => untuk dirubah menjadi integer, memiliki default value infinity (dimana kita tidak tau jumlah user yang ada)
   const searchBefore = request.query.search;
   let search;
   if (searchBefore) {
@@ -258,6 +284,7 @@ async function getTransactions(request, response, next) {
 }
 
 /**
+ * Untuk mengupdate account, jika terjadi perubahan
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -269,6 +296,14 @@ async function updateAccount(request, response, next) {
     const name = request.body.name;
     const emailBefore = request.body.email;
     const email = emailBefore.toLowerCase(); // default email (huruf kecil semua)
+
+    // Check id
+    if (!(await digitalbankingServices.checkAccountbyId(id))) {
+      throw errorResponder(
+        errorTypes.INVALID_CREDENTIALS,
+        'Wrong id account number'
+      );
+    }
 
     // Email must be unique
     const emailIsRegistered =
@@ -294,6 +329,7 @@ async function updateAccount(request, response, next) {
   }
 }
 /**
+ * Untuk mengupdate account number digital banking
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -301,6 +337,14 @@ async function updateAccount(request, response, next) {
  */
 async function updateAccountNumber(request, response, next) {
   try {
+    // Check id
+    if (!(await digitalbankingServices.checkAccountbyId(request.params.id))) {
+      throw errorResponder(
+        errorTypes.INVALID_CREDENTIALS,
+        'Wrong id account number'
+      );
+    }
+
     // Check old account number
     if (
       !(await digitalbankingServices.checkAccountNumber(
@@ -355,6 +399,7 @@ async function updateAccountNumber(request, response, next) {
 }
 
 /**
+ * Untuk mengupdate balance, jika terjadi setor uang
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -362,6 +407,14 @@ async function updateAccountNumber(request, response, next) {
  */
 async function updateBalance(request, response, next) {
   try {
+    // Check id
+    if (!(await digitalbankingServices.checkAccountbyId(request.params.id))) {
+      throw errorResponder(
+        errorTypes.INVALID_CREDENTIALS,
+        'Wrong id account number'
+      );
+    }
+
     const to_account_number = request.body.to_account_number;
     const balanceTransfer = request.body.amountnominal;
     const description = request.body.description;
@@ -394,6 +447,7 @@ async function updateBalance(request, response, next) {
 }
 
 /**
+ * Untuk mendelete transaction account, berdasarkan id yang diberikan
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -401,9 +455,15 @@ async function updateBalance(request, response, next) {
  */
 async function deleteTransaction(request, response, next) {
   try {
-    const id = request.params.id;
+    // Check id
+    if (!(await digitalbankingServices.checkAccountbyId(request.params.id))) {
+      throw errorResponder(
+        errorTypes.INVALID_CREDENTIALS,
+        'Wrong id account number'
+      );
+    }
 
-    const success = await digitalbankingServices.deleteTransaction(id);
+    const success = await digitalbankingServices.deleteTransaction(request.params.id);
     if (!success) {
       throw errorResponder(
         errorTypes.UNPROCESSABLE_ENTITY,
@@ -418,7 +478,9 @@ async function deleteTransaction(request, response, next) {
     return next(error);
   }
 }
+
 /**
+ * Untuk mendelete semua transaction yang pernah dilakukan oleh pengguna
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -443,6 +505,7 @@ async function deleteTransactions(request, response, next) {
 }
 
 /**
+ * Untuk mendelete account
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -450,9 +513,15 @@ async function deleteTransactions(request, response, next) {
  */
 async function deleteAccount(request, response, next) {
   try {
-    const id = request.params.id;
+    // Check id
+    if (!(await digitalbankingServices.checkAccountbyId(request.params.id))) {
+      throw errorResponder(
+        errorTypes.INVALID_CREDENTIALS,
+        'Wrong id account number'
+      );
+    }
 
-    const success = await digitalbankingServices.deleteAccount(id);
+    const success = await digitalbankingServices.deleteAccount(request.params.id);
     if (!success) {
       throw errorResponder(
         errorTypes.UNPROCESSABLE_ENTITY,
@@ -469,6 +538,7 @@ async function deleteAccount(request, response, next) {
 }
 
 /**
+ * Untuk mengubah password, jika dirasa password lama kurang meyakinkan
  * @param {object} request - Express request object
  * @param {object} response - Express response object
  * @param {object} next - Express route middlewares
@@ -476,6 +546,14 @@ async function deleteAccount(request, response, next) {
  */
 async function changePassword(request, response, next) {
   try {
+    // Check id
+    if (!(await digitalbankingServices.checkAccountbyId(request.params.id))) {
+      throw errorResponder(
+        errorTypes.INVALID_CREDENTIALS,
+        'Wrong id account number'
+      );
+    }
+
     // Check password confirmation
     if (request.body.password_new !== request.body.password_confirm) {
       throw errorResponder(
@@ -509,12 +587,10 @@ async function changePassword(request, response, next) {
       );
     }
 
-    return response
-      .status(200)
-      .json({
-        id: request.params.id,
-        messages: 'Change Password Successfully !!!',
-      });
+    return response.status(200).json({
+      id: request.params.id,
+      messages: 'Change Password Successfully !!!',
+    });
   } catch (error) {
     return next(error);
   }

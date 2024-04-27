@@ -2,7 +2,7 @@ const authenticationRepository = require('./authentication-repository');
 const { generateToken } = require('../../../utils/session-token');
 const { passwordMatched } = require('../../../utils/password');
 const limitAttempts = 5; // Menginisialisai limit attempts
-const timeMinutesAttempt = 30; // Menginisialisasi jangka waktu (menit)
+const timeMinutesWaitAttempt = 30; // Menginisialisasi jangka waktu (menit)
 
 /**
  * Check username and password for login.
@@ -38,7 +38,7 @@ async function checkLoginCredentials(email, password) {
 
 /**
  * Check  for login attempt.
- * @returns {object} Mengembalikan "true", jika melebihi limit attempts.
+ * @returns {boolean} Mengembalikan "true", jika melebihi limit attempts.
  */
 async function checkLoginAttempt() {
   const currentTime = Date.now(); // untuk menginisialisai waktu saat login diproses
@@ -50,12 +50,13 @@ async function checkLoginAttempt() {
 
   if (previousAttempts.attempt > limitAttempts) {
     const timePassed =
-      (currentTime - previousAttempts.dateAttempt) / (1000 * 60); // untuk mengitung waktu yang sudah berlalu, sejak di hit user untuk login
-    if (timePassed > timeMinutesAttempt) {
+      (currentTime - previousAttempts.dateAttempt) / (1000 * 60); // untuk menghitung waktu yang sudah berlalu, sejak di hit user untuk login
+    if (timePassed > timeMinutesWaitAttempt) {
       authenticationRepository.resetLoginAttempt(); // mereset login attempt, jika waktu sudah melewati batas waktu yang ditentukan
     }
     return true;
   }
+  // Menyimpan login attempt
   await authenticationRepository.saveLoginAttempt(
     previousAttempts.attempt + 1,
     currentTime

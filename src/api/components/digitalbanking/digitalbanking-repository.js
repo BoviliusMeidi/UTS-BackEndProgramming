@@ -80,6 +80,7 @@ async function getTransaction(account_number) {
  */
 async function getTransactions() {
   const allAccount = await DigitalBanking.find();
+  // Untuk hanya mendapatkan data transaction nya
   const transactions = allAccount.flatMap((account) => account.transactions);
   return transactions;
 }
@@ -118,6 +119,7 @@ async function getAccountbyAccountNumber(account_number) {
  * @param {string} password - Hashed password
  * @param {string} balance - Saldo Awal
  * @param {string} account_number - Account Number
+ * @returns {Promise}
  */
 async function createAccount(name, email, password, balance, account_number) {
   return DigitalBanking.create({
@@ -131,7 +133,7 @@ async function createAccount(name, email, password, balance, account_number) {
 
 /**
  * Function mendapatkan waktu sekarang
- * @returns {object} Response object or pass an error to the next route
+ * @returns {Promise}
  */
 async function getDateNow() {
   const date = new Date();
@@ -144,6 +146,7 @@ async function getDateNow() {
  * @param {string} id - Account ID
  * @param {string} name - Name
  * @param {string} email - Email
+ * @returns {Promise}
  */
 async function updateAccount(id, name, email) {
   return DigitalBanking.updateOne(
@@ -158,10 +161,12 @@ async function updateAccount(id, name, email) {
     }
   );
 }
+
 /**
- * Transfer Balance account
+ * Update Transfer Balance account
  * @param {string} account_number - Account Number
  * @param {string} sumBalance - Total Balance
+ * @returns {Promise}
  */
 async function updateTransferBalance(account_number, sumBalance) {
   return DigitalBanking.updateOne(
@@ -184,6 +189,7 @@ async function updateTransferBalance(account_number, sumBalance) {
 async function deleteTransaction(id) {
   return DigitalBanking.updateOne({ _id: id }, { $set: { transactions: [] } });
 }
+
 /**
  * Delete all transaction
  * @returns {Promise}
@@ -191,6 +197,7 @@ async function deleteTransaction(id) {
 async function deleteTransactions() {
   return DigitalBanking.updateMany({ $set: { transactions: [] } });
 }
+
 /**
  * Delete a account
  * @param {string} id - Account ID

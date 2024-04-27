@@ -11,7 +11,7 @@ async function getUserByEmail(email) {
 }
 
 /**
- * Get user attempt
+ * Get user attempt for login
  * @returns {Promise}
  */
 async function getLoginAttempt() {
@@ -19,7 +19,7 @@ async function getLoginAttempt() {
 }
 
 /**
- * User save attempt by attempt, date attempt for save login attempt
+ * Get save login attempt, by passing attempt, and date attempt
  * @param {string} attempt - Jumlah Attempt
  * @param {string} dateAttempt - Waktu Attempt
  * @returns {Promise}

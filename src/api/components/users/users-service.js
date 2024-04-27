@@ -24,7 +24,7 @@ async function getUsers() {
 /**
  * Get user detail
  * @param {string} id - User ID
- * @returns {Object}
+ * @returns {Array}
  */
 async function getUser(id) {
   const user = await usersRepository.getUser(id);

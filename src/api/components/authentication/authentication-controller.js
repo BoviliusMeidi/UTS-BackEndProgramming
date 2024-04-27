@@ -31,14 +31,14 @@ async function login(request, response, next) {
     );
 
     if (!loginSuccess) {
-      attempt--;
+      attempt--; // mengurangi attempt jika gagal login
       throw errorResponder(
         errorTypes.INVALID_CREDENTIALS,
         `Wrong email or password, you have limit attempt ${attempt} more again`
       );
     }
 
-    attempt = 5;
+    attempt = 5; // mengembalikan default value attempt, ketika login berhasil
 
     return response.status(200).json(loginSuccess);
   } catch (error) {

@@ -9,8 +9,8 @@ const { errorResponder, errorTypes } = require('../../../core/errors');
  * @returns {object} Response object or pass an error to the next route
  */
 async function getUsers(request, response, next) {
-  const page_number = parseInt(request.query.page_number) || 1; // parseInt => untuk dirubah menjadi integer
-  const page_size = parseInt(request.query.page_size) || Infinity; // parseInt => untuk dirubah menjadi integer
+  const page_number = parseInt(request.query.page_number) || 1; // parseInt => untuk dirubah menjadi integer , memiliki default value 1
+  const page_size = parseInt(request.query.page_size) || Infinity; // parseInt => untuk dirubah menjadi integer, memiliki default value infinity (dimana kita tidak tau jumlah user yang ada)
   const searchBefore = request.query.search;
   let search;
   if (searchBefore) {

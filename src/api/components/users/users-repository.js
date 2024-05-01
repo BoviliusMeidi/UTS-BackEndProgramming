@@ -56,7 +56,7 @@ async function getPaginationUsers(page_number, page_size, search, sort) {
         `Salah menginput parameter field name => ${fieldName}  pada 'sort'`
       );
     }
-    const sortOptions = { [fieldName]: sortKey === 'desc' ? -1 : 1 }; // untuk opsi pengurutannya
+    const sortOptions = { [fieldName]: sortKey === 'desc' ? -1 : 1 }; // untuk opsi pengurutannya, dimana jika selain desc, maka akan di sort secara asc
     results.sort((a, b) => {
       // Metode mengurutkan elemen-elemen array
       if (a[fieldName] < b[fieldName]) return -sortOptions[fieldName];

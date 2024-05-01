@@ -237,15 +237,20 @@ async function getAccounts(request, response, next) {
 async function getTransaction(request, response, next) {
   try {
     // Check id
-    if (!(await digitalbankingServices.checkAccountNumberbyAccountNumber(request.params.account_number))) {
+    if (
+      !(await digitalbankingServices.checkAccountNumberbyAccountNumber(
+        request.params.account_number
+      ))
+    ) {
       throw errorResponder(
         errorTypes.INVALID_CREDENTIALS,
         'Wrong account number'
       );
     }
 
-    const transactions =
-      await digitalbankingServices.getTransaction(request.params.account_number);
+    const transactions = await digitalbankingServices.getTransaction(
+      request.params.account_number
+    );
     return response.status(200).json(transactions);
   } catch (error) {
     return next(error);
@@ -463,7 +468,9 @@ async function deleteTransaction(request, response, next) {
       );
     }
 
-    const success = await digitalbankingServices.deleteTransaction(request.params.id);
+    const success = await digitalbankingServices.deleteTransaction(
+      request.params.id
+    );
     if (!success) {
       throw errorResponder(
         errorTypes.UNPROCESSABLE_ENTITY,
@@ -521,7 +528,9 @@ async function deleteAccount(request, response, next) {
       );
     }
 
-    const success = await digitalbankingServices.deleteAccount(request.params.id);
+    const success = await digitalbankingServices.deleteAccount(
+      request.params.id
+    );
     if (!success) {
       throw errorResponder(
         errorTypes.UNPROCESSABLE_ENTITY,

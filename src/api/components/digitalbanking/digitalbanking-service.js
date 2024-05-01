@@ -516,7 +516,8 @@ async function checkPassword(id, password) {
  * @returns {boolean}
  */
 async function checkAccountNumberbyAccountNumber(account_number) {
-  const account = await digitalbankingRepository.getAccountbyAccountNumber(account_number);
+  const account =
+    await digitalbankingRepository.getAccountbyAccountNumber(account_number);
   if (account) {
     return true;
   }

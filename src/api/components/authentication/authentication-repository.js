@@ -1,4 +1,4 @@
-const { User } = require('../../../models');
+const { User, LoginTimeUsers } = require('../../../models');
 let loginAttempts = ''; // Menampung Login Attempt
 
 /**
@@ -37,9 +37,37 @@ async function resetLoginAttempt() {
   // Sehingga pada saat percobaan setelah menunggu jangka waktunya, tetap memiliki default mulai dari 1 attempt.
 }
 
+/**
+ * Mencari login time, yang sudah di add oleh function addLoginTime
+ * @returns {Promise}
+ */
+async function searchLoginTime() {
+  const loginTime = await LoginTimeUsers.findOne();
+  return loginTime ? loginTime.timeLogin : null;
+}
+
+/**
+ * Menambah login time, supaya ketika server terputus, maka tetap harus menunggu 30 menit untuk login
+ * @param {Date} time - waktu login
+ */
+async function addLoginTime(time) {
+  const addTime = new LoginTimeUsers({ timeLogin: time });
+  await addTime.save();
+}
+
+/**
+ * Menghapus login time, jika success masuk
+ */
+async function clearLoginTime() {
+  await LoginTimeUsers.deleteMany();
+}
+
 module.exports = {
   getUserByEmail,
   getLoginAttempt,
   saveLoginAttempt,
   resetLoginAttempt,
+  searchLoginTime,
+  addLoginTime,
+  clearLoginTime,
 };

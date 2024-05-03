@@ -19,4 +19,8 @@ const digitalbankingSchema = {
   ],
 };
 
-module.exports = digitalbankingSchema;
+const loginTimeDigitalBanking = {
+  timeLogin: String,
+};
+
+module.exports = { digitalbankingSchema, loginTimeDigitalBanking };

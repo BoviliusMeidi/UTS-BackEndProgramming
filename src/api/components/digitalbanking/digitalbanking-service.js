@@ -8,6 +8,7 @@ const { generateToken } = require('../../../utils/session-token');
 const { default: mongoose } = require('mongoose');
 const limitAttempts = 5; // Menginisialisai limit attempts
 const timeMinutesAttempt = 30; // Menginisialisasi jangka waktu (menit)
+let timeAdd = true; // Menginialisasi nilai, untuk looping if, pada bagian pencatatan waktu saat login mengenai limit
 
 /**
  * Get list of account
@@ -58,14 +59,13 @@ async function getPagination(
   const indexAkhir = page_number * page_size; // untuk membuat index akhir dari users sesuai page yang dimasukkan
   const has_previous_page = page_number > 1 ? true : false; // untuk menunjukkan apakah ada halaman sebelumnya
   const has_next_page = indexAkhir < accounts.length; // untuk Menunjukkan apakah ada halaman selanjutnya
-  const results = accounts.slice(indexAwal, indexAkhir); //untuk mencari result dari index yang diberikan (indexAwal), sampai yang diberikan(indexAkhir)
-  const count = results.length; //untuk jumlah total keseluruhan data
-
   const resultsAccount = [];
 
   if (type_pagination === 'account') {
-    for (let i = 0; i < count; i += 1) {
-      const account = accounts[i];
+    const results = accounts.slice(indexAwal, indexAkhir); //untuk mencari result dari index yang diberikan (indexAwal), sampai yang diberikan(indexAkhir)
+    const count = results.length; //untuk jumlah total keseluruhan data
+    for (let i = 0; i < count; i++) {
+      const account = results[i];
       resultsAccount.push({
         account_id: account.id,
         account_number: account.account_number,
@@ -75,8 +75,10 @@ async function getPagination(
   }
 
   if (type_pagination === 'transaction') {
-    for (let i = 0; i < count; i += 1) {
-      const transaction = transactions[i];
+    const results = transactions.slice(indexAwal, indexAkhir); //untuk mencari result dari index yang diberikan (indexAwal), sampai yang diberikan(indexAkhir)
+    const count = results.length; //untuk jumlah total keseluruhan data
+    for (let i = 0; i < count; i++) {
+      const transaction = results[i];
       resultsAccount.push({
         transaction_id: transaction.transaction_id,
         type_transaction: transaction.type_transaction,
@@ -94,7 +96,7 @@ async function getPagination(
   return {
     page_number,
     page_size,
-    count,
+    count: resultsAccount.length,
     has_previous_page,
     has_next_page,
     data: resultsAccount,
@@ -629,7 +631,7 @@ async function checkLoginCredentials(email, password) {
 
 /**
  * Check  for login attempt.
- * @returns {boolean} Mengembalikan "true", jika melebihi limit attempts.
+ * @returns {Object} Mengembalikan "true" dan "timeWait", jika melebihi limit attempts.
  */
 async function checkLoginAttempt() {
   const currentTime = Date.now(); // untuk menginisialisai waktu saat login diproses
@@ -639,14 +641,27 @@ async function checkLoginAttempt() {
       dateAttempt: 0,
     };
 
-  if (previousAttempts.attempt > limitAttempts) {
-    const timePassed =
-      (currentTime - previousAttempts.dateAttempt) / (1000 * 60); // untuk mengitung waktu yang sudah berlalu, sejak di hit user untuk login
-    if (timePassed > timeMinutesAttempt) {
-      digitalbankingRepository.resetLoginAttempt(); // mereset login attempt, jika waktu sudah melewati batas waktu yang ditentukan
-    }
-    return true;
+  const timeAtLimit = await digitalbankingRepository.searchLoginTime(); // waktu saat limit melampaui 5 kali
+  const timePassed = (currentTime - timeAtLimit) / (1000 * 60); // untuk menghitung waktu yang sudah berlalu, sejak di hit user untuk login
+  const timeWait = (timeMinutesAttempt - timePassed).toFixed(2); // menghitung sisa waktu tunggu, untuk mencoba login berikutnya
+  if (timePassed < timeMinutesAttempt) {
+    return { success: true, timeWait: timeWait };
   }
+  if (timePassed > timeMinutesAttempt) {
+    timeAdd = true;
+    await digitalbankingRepository.clearLoginTime(); // mereset waktu login, jika sudah melewati batas waktu
+    digitalbankingRepository.resetLoginAttempt(); // mereset login attempt, jika waktu sudah melewati batas waktu yang ditentukan
+  }
+
+  if (previousAttempts.attempt > limitAttempts) {
+    if (timeAdd === true) {
+      await digitalbankingRepository.addLoginTime(previousAttempts.dateAttempt);
+      timeAdd = false;
+    }
+    return { success: true, timeWait: '30 minutes' };
+  }
+
+  // Menyimpan login attempt
   await digitalbankingRepository.saveLoginAttempt(
     previousAttempts.attempt + 1,
     currentTime

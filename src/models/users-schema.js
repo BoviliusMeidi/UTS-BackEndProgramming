@@ -4,4 +4,7 @@ const usersSchema = {
   password: String,
 };
 
-module.exports = usersSchema;
+const loginTimeUsers = {
+  timeLogin: String,
+};
+module.exports = { usersSchema, loginTimeUsers };

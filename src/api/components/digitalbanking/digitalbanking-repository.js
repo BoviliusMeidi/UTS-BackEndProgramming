@@ -1,4 +1,4 @@
-const { DigitalBanking } = require('../../../models');
+const { DigitalBanking, LoginTimeDigitalBanking } = require('../../../models');
 let loginAttempts = ''; //Menampung login Attempts
 
 /**
@@ -137,7 +137,7 @@ async function createAccount(name, email, password, balance, account_number) {
  */
 async function getDateNow() {
   const date = new Date();
-  const localTime = new Date(date.getTime() - (-7 * 60 * 60 * 1000));
+  const localTime = new Date(date.getTime() - -7 * 60 * 60 * 1000);
   return localTime;
 }
 
@@ -257,6 +257,31 @@ async function resetLoginAttempt() {
   // Sehingga pada saat percobaan setelah menunggu jangka waktunya, tetap memiliki default mulai dari 1 attempt.
 }
 
+/**
+ * Mencari login time, yang sudah di add oleh function addLoginTime
+ * @returns {Promise}
+ */
+async function searchLoginTime() {
+  const loginTime = await LoginTimeDigitalBanking.findOne();
+  return loginTime ? loginTime.timeLogin : null;
+}
+
+/**
+ * Menambah login time, supaya ketika server terputus, maka tetap harus menunggu 30 menit untuk login
+ * @param {Date} time - waktu login
+ */
+async function addLoginTime(time) {
+  const addTime = new LoginTimeDigitalBanking({ timeLogin: time });
+  await addTime.save();
+}
+
+/**
+ * Menghapus login time, jika success masuk
+ */
+async function clearLoginTime() {
+  await LoginTimeDigitalBanking.deleteMany();
+}
+
 module.exports = {
   getAccounts,
   getPagination,
@@ -277,4 +302,7 @@ module.exports = {
   getLoginAttempt,
   saveLoginAttempt,
   resetLoginAttempt,
+  searchLoginTime,
+  addLoginTime,
+  clearLoginTime,
 };

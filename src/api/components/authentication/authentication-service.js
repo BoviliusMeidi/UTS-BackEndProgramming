@@ -3,6 +3,7 @@ const { generateToken } = require('../../../utils/session-token');
 const { passwordMatched } = require('../../../utils/password');
 const limitAttempts = 5; // Menginisialisai limit attempts
 const timeMinutesWaitAttempt = 30; // Menginisialisasi jangka waktu (menit)
+let timeAdd = true; // Menginialisasi nilai, untuk looping if, pada bagian pencatatan waktu saat login mengenai limit
 
 /**
  * Check username and password for login.
@@ -38,7 +39,7 @@ async function checkLoginCredentials(email, password) {
 
 /**
  * Check  for login attempt.
- * @returns {boolean} Mengembalikan "true", jika melebihi limit attempts.
+ * @returns {Object} Mengembalikan "true" dan "timeWait", jika melebihi limit attempts.
  */
 async function checkLoginAttempt() {
   const currentTime = Date.now(); // untuk menginisialisai waktu saat login diproses
@@ -48,13 +49,24 @@ async function checkLoginAttempt() {
       dateAttempt: 0,
     };
 
+  const timeAtLimit = await authenticationRepository.searchLoginTime(); // waktu saat limit melampaui 5 kali
+  const timePassed = (currentTime - timeAtLimit) / (1000 * 60); // untuk menghitung waktu yang sudah berlalu, sejak di hit user untuk login
+  const timeWait = (timeMinutesWaitAttempt - timePassed).toFixed(2); // menghitung sisa waktu tunggu, untuk mencoba login berikutnya
+  if (timePassed < timeMinutesWaitAttempt) {
+    return { success: true, timeWait: timeWait };
+  }
+  if (timePassed > timeMinutesWaitAttempt) {
+    timeAdd = true;
+    await authenticationRepository.clearLoginTime(); // mereset waktu login, jika sudah melewati batas waktu
+    authenticationRepository.resetLoginAttempt(); // mereset login attempt, jika waktu sudah melewati batas waktu yang ditentukan
+  }
+
   if (previousAttempts.attempt > limitAttempts) {
-    const timePassed =
-      (currentTime - previousAttempts.dateAttempt) / (1000 * 60); // untuk menghitung waktu yang sudah berlalu, sejak di hit user untuk login
-    if (timePassed > timeMinutesWaitAttempt) {
-      authenticationRepository.resetLoginAttempt(); // mereset login attempt, jika waktu sudah melewati batas waktu yang ditentukan
+    if (timeAdd === true) {
+      await authenticationRepository.addLoginTime(previousAttempts.dateAttempt);
+      timeAdd = false;
     }
-    return true;
+    return { success: true, timeWait: '30 minutes' };
   }
   // Menyimpan login attempt
   await authenticationRepository.saveLoginAttempt(

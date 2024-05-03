@@ -21,7 +21,7 @@ async function login(request, response, next) {
     if (limitLoginSuccess) {
       throw errorResponder(
         errorTypes.FORBIDDEN,
-        'Too many failed login attempts. Must Wait 30 Minutes, to try Login again.'
+        `Too many failed login attempts. Must Wait ${limitLoginSuccess.timeWait} minutes, to try Login again.`
       );
     }
     // Check login credentials
